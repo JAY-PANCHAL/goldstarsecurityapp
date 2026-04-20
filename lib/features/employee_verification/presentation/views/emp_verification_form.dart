@@ -4,11 +4,13 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:golstarsecurityapplatest/app/themes/app_colors.dart';
+import 'package:golstarsecurityapplatest/core/widgets/error_snackbar.dart';
 import 'package:golstarsecurityapplatest/core/widgets/glass_card.dart';
 import 'package:golstarsecurityapplatest/core/widgets/glass_input.dart';
 import 'package:golstarsecurityapplatest/features/employee_verification/presentation/controllers/verification_form_controller.dart';
 import 'package:intl/intl.dart';
 import 'package:signature/signature.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class EmpVerificationForm extends StatefulWidget {
   const EmpVerificationForm({super.key});
@@ -22,6 +24,40 @@ class _EmpVerificationFormState extends State<EmpVerificationForm> {
   bool showPan = false;
   Timer? _aadhaarTimer;
   Timer? _panTimer;
+
+  String _digitsOnly(String input) => input.replaceAll(RegExp(r'\D'), '');
+
+  Future<void> _openDialer(String phone) async {
+    final digits = _digitsOnly(phone);
+    if (digits.isEmpty) {
+      ErrorSnackbar.show('Mobile number not available');
+      return;
+    }
+    final uri = Uri(scheme: 'tel', path: digits);
+    final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!ok) ErrorSnackbar.show('Could not open phone dialer');
+  }
+
+  Future<void> _openGoogleMaps({
+    String? address,
+    double? lat,
+    double? lng,
+  }) async {
+    final q = (lat != null && lng != null)
+        ? '${lat.toStringAsFixed(6)},${lng.toStringAsFixed(6)}'
+        : (address ?? '').trim();
+    if (q.isEmpty) {
+      ErrorSnackbar.show('Address not available');
+      return;
+    }
+    final uri = Uri.https(
+      'www.google.com',
+      '/maps/search/',
+      {'api': '1', 'query': q},
+    );
+    final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!ok) ErrorSnackbar.show('Could not open Google Maps');
+  }
 
   @override
   void dispose() {
@@ -86,8 +122,22 @@ class _EmpVerificationFormState extends State<EmpVerificationForm> {
                             _infoRow('Name', emp.empName),
                             _infoRow('Code', emp.empCode),
                             _infoRow('Gender', emp.gender ?? ''),
-                            _infoRow('Mobile', emp.mobileNo ?? ''),
-                            _infoRow('Alt Mobile', emp.altMobileNo ?? ''),
+                            _infoRow(
+                              'Mobile',
+                              emp.mobileNo ?? '',
+                              onTap: (emp.mobileNo ?? '').trim().isEmpty
+                                  ? null
+                                  : () => _openDialer(emp.mobileNo ?? ''),
+                              trailingIcon: Icons.call,
+                            ),
+                            _infoRow(
+                              'Alt Mobile',
+                              emp.altMobileNo ?? '',
+                              onTap: (emp.altMobileNo ?? '').trim().isEmpty
+                                  ? null
+                                  : () => _openDialer(emp.altMobileNo ?? ''),
+                              trailingIcon: Icons.call,
+                            ),
                             _infoRow('Email Official', emp.emailOfficial ?? ''),
                             _infoRow('Email Personal', emp.emailPersonal ?? ''),
                             if ((emp.createdDate ?? '').trim().isNotEmpty)
@@ -140,9 +190,48 @@ class _EmpVerificationFormState extends State<EmpVerificationForm> {
                               ),
                             ),
                             const SizedBox(height: 8),
-                            Text(
-                              '${emp.add1 ?? ''} ${emp.add2 ?? ''} ${emp.city ?? ''} ${emp.state ?? ''} ${emp.pin ?? ''}',
-                              style: const TextStyle(color: Colors.white70),
+                            Builder(
+                              builder: (context) {
+                                final address =
+                                    '${emp.add1 ?? ''} ${emp.add2 ?? ''} ${emp.city ?? ''} ${emp.state ?? ''} ${emp.pin ?? ''}'
+                                        .trim();
+                                final isLink = address.isNotEmpty;
+                                return GestureDetector(
+                                  behavior: HitTestBehavior.opaque,
+                                  onTap: isLink
+                                      ? () => _openGoogleMaps(
+                                            address: address,
+                                          )
+                                      : null,
+                                  child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          address,
+                                          style: TextStyle(
+                                            color: isLink
+                                                ? AppColors.accentGold
+                                                : Colors.white70,
+                                            decoration: isLink
+                                                ? TextDecoration.underline
+                                                : TextDecoration.none,
+                                          ),
+                                        ),
+                                      ),
+                                      if (isLink) ...[
+                                        const SizedBox(width: 8),
+                                        const Icon(
+                                          Icons.map_outlined,
+                                          size: 18,
+                                          color: AppColors.accentGold,
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                );
+                              },
                             ),
                             const SizedBox(height: 8),
                             Row(
@@ -803,15 +892,38 @@ class _EmpVerificationFormState extends State<EmpVerificationForm> {
     );
   }
 
-  Widget _infoRow(String label, String value) {
+  Widget _infoRow(
+    String label,
+    String value, {
+    VoidCallback? onTap,
+    IconData? trailingIcon,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
         children: [
           Text('$label: ', style: const TextStyle(color: Colors.white70)),
           Expanded(
-            child: Text(value, style: const TextStyle(color: Colors.white)),
+            child: onTap == null
+                ? Text(value, style: const TextStyle(color: Colors.white))
+                : GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: onTap,
+                    child: Text(
+                      value,
+                      style: const TextStyle(
+                        color: AppColors.accentGold,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ),
           ),
+          if (onTap != null)
+            Icon(
+              trailingIcon ?? Icons.open_in_new,
+              size: 18,
+              color: AppColors.accentGold,
+            ),
         ],
       ),
     );
