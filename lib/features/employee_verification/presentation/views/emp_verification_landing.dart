@@ -271,7 +271,7 @@ class _PendingList extends StatelessWidget {
               ),
               TextButton(
                 onPressed: () => Get.back(),
-                child: const Text('Close'),
+                child: const Text('Close', style: TextStyle(color: Colors.white),),
               ),
             ],
           ),

@@ -20,6 +20,8 @@ class EmployeeModel {
   final String? aadhar;
   final String? gender;
   final String? pan;
+  final String? age;
+  final String? homeType;
   final String? spouseName;
   final String? fatherName;
 
@@ -45,6 +47,8 @@ class EmployeeModel {
     this.aadhar,
     this.gender,
     this.pan,
+    this.age,
+    this.homeType,
     this.spouseName,
     this.fatherName,
   });
@@ -63,6 +67,14 @@ class EmployeeModel {
     return s == 'true' || s == '1' || s == 'yes' || s == 'y';
   }
 
+  static String? _firstNonEmpty(Map<String, dynamic> json, List<String> keys) {
+    for (final key in keys) {
+      final value = _trimOrNull(json[key]);
+      if (value != null && value.isNotEmpty) return value;
+    }
+    return null;
+  }
+
   factory EmployeeModel.fromJson(Map<String, dynamic> json) => EmployeeModel(
         employeeId: json['EmployeeID'],
         empCode: _trimOrNull(json['EmpCode']) ?? '',
@@ -73,10 +85,17 @@ class EmployeeModel {
         isReferenceMandatory: _boolFromApi(json['IsReferenceMandatory']),
         verificationDate: _trimOrNull(json['VerificationDate']),
         verificationTimeSlot: _trimOrNull(json['VerificationTimeSlot']),
-        mobileNo: _trimOrNull(json['MobileNo']),
-        altMobileNo: _trimOrNull(json['AltMobileNo']),
-        emailOfficial: _trimOrNull(json['EmailOfficial']),
-        emailPersonal: _trimOrNull(json['EmailPersonal']),
+        mobileNo: _firstNonEmpty(json, const ['MobileNo', 'Mobile', 'MobNo']),
+        altMobileNo:
+            _firstNonEmpty(json, const ['AltMobileNo', 'AlternateMobileNo']),
+        emailOfficial: _firstNonEmpty(
+          json,
+          const ['EmailOfficial', 'OfficialEmail', 'EmailID', 'Email'],
+        ),
+        emailPersonal: _firstNonEmpty(
+          json,
+          const ['EmailPersonal', 'PersonalEmail', 'EmailIdPersonal'],
+        ),
         add1: _trimOrNull(json['Add1']),
         add2: _trimOrNull(json['Add2']),
         city: _trimOrNull(json['City']),
@@ -85,6 +104,11 @@ class EmployeeModel {
         aadhar: _trimOrNull(json['Aadhar']),
         gender: _trimOrNull(json['Gender']),
         pan: _trimOrNull(json['PAN']),
+        age: _firstNonEmpty(json, const ['Age', 'EmpAge']),
+        homeType: _firstNonEmpty(
+          json,
+          const ['HomeType', 'ResidenceType', 'HomeStatus'],
+        ),
         spouseName: _trimOrNull(json['SpouseName']),
         fatherName: _trimOrNull(json['FatherName']),
       );
@@ -108,6 +132,8 @@ class EmployeeModel {
     'aadhar': aadhar,
     'gender': gender,
     'pan': pan,
+    'age': age,
+    'homeType': homeType,
     'isVerified': isVerified ? 1 : 0,
     'verificationDateTime': verificationDateTime,
     'syncStatus': 'synced',
@@ -129,6 +155,8 @@ class EmployeeModel {
     aadhar: map['aadhar'],
     gender: map['gender'],
     pan: map['pan'],
+    age: map['age'],
+    homeType: map['homeType'],
     spouseName: map['spouseName'],
     fatherName: map['fatherName'],
     status: map['status'],

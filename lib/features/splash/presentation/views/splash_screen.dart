@@ -96,6 +96,24 @@ class _SplashScreenState extends State<SplashScreen>
           Positioned(
             left: 0,
             right: 0,
+            bottom: 10,
+            child: SafeArea(
+              minimum: const EdgeInsets.only(bottom: 6),
+              child: Center(
+                child: Text(
+                  'Powered by Mindtech Solutions Pvt. Ltd.',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.85),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
             bottom: 0,
             child: Obx(
               () => controller.isSyncing.value

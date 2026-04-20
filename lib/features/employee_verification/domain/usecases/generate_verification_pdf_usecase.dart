@@ -10,7 +10,7 @@ class GenerateVerificationPdfUsecase {
   Future<File> call({
     required Map<String, dynamic> data,
     required String employeeName,
-    required Uint8List? employeePhoto,
+    required List<Uint8List> employeePhotos,
     required Uint8List? verifierSignature,
     required Uint8List? employeeSignature,
     String? createdDate,
@@ -59,10 +59,10 @@ class GenerateVerificationPdfUsecase {
     }
 
     final genderText = v(employeeDetails, 'Gender').toLowerCase();
-    final isMale =
-        genderText.startsWith('m') || genderText.contains('male') == true;
+    final normalizedGender = genderText.replaceAll(RegExp(r'[^a-z]'), '');
+    final isMale = normalizedGender == 'male' || normalizedGender == 'm';
     final isFemale =
-        genderText.startsWith('f') || genderText.contains('female') == true;
+        normalizedGender == 'female' || normalizedGender == 'f';
 
     bool? parseYesNo(String text) {
       final t = text.trim().toLowerCase();
@@ -78,6 +78,15 @@ class GenerateVerificationPdfUsecase {
       v(addressDetails, 'Address Confirmed'),
     );
     final hasCriminal = parseYesNo(v(criminalRecord, 'Has Criminal Cases'));
+    final homeTypeText = v(addressDetails, 'Home Type').toLowerCase();
+    final isRented = homeTypeText.contains('rent');
+    final isOwned = homeTypeText.contains('own');
+    final Uint8List? firstPhoto = employeePhotos.isEmpty
+        ? null
+        : employeePhotos.first;
+    final List<Uint8List> additionalPhotos = employeePhotos.length > 1
+        ? employeePhotos.skip(1).take(4).toList()
+        : const <Uint8List>[];
 
     doc.addPage(
       pw.Page(
@@ -271,16 +280,10 @@ class GenerateVerificationPdfUsecase {
                 decoration: pw.BoxDecoration(
                   border: pw.Border.all(color: borderColor, width: hairline),
                 ),
-                child: employeePhoto == null
-                    ? pw.Text(
-                        'Emp. Photo',
-                        style: pw.TextStyle(
-                          fontSize: 9,
-                          color: PdfColors.grey700,
-                        ),
-                      )
+                child: firstPhoto == null
+                    ? pw.SizedBox()
                     : pw.Image(
-                        pw.MemoryImage(employeePhoto),
+                        pw.MemoryImage(firstPhoto),
                         fit: pw.BoxFit.cover,
                       ),
               ),
@@ -400,18 +403,6 @@ class GenerateVerificationPdfUsecase {
                                       textAlign: pw.TextAlign.right,
                                     ),
                                   ),
-                                if ((createdDate ?? '').trim().isNotEmpty)
-                                  pw.Text(
-                                    'Created: ${createdDate!.trim()}',
-                                    style: const pw.TextStyle(fontSize: 8),
-                                    textAlign: pw.TextAlign.right,
-                                  ),
-                                if ((verifiedDate ?? '').trim().isNotEmpty)
-                                  pw.Text(
-                                    'Verified: ${verifiedDate!.trim()}',
-                                    style: const pw.TextStyle(fontSize: 8),
-                                    textAlign: pw.TextAlign.right,
-                                  ),
                               ],
                             ),
                           ),
@@ -485,7 +476,7 @@ class GenerateVerificationPdfUsecase {
                                         pw.Container(
                                           width: 40,
                                           child: underlineValue(
-                                            '',
+                                            v(employeeDetails, 'Age'),
                                             align: pw.TextAlign.center,
                                           ),
                                         ),
@@ -501,17 +492,10 @@ class GenerateVerificationPdfUsecase {
                                       'Alt Mobile',
                                     ),
                                   ),
-                                  smallKeyValueRow(
-                                    leftLabel: 'Email (Official)',
-                                    leftValue: v(
-                                      employeeDetails,
-                                      'Email Official',
-                                    ),
-                                    rightLabel: 'Email (Personal)',
-                                    rightValue: v(
-                                      employeeDetails,
-                                      'Email Personal',
-                                    ),
+                                  lineField(
+                                    label: 'Email (Official)',
+                                    value: v(employeeDetails, 'Email Official'),
+                                    labelWidth: 95,
                                   ),
                                   smallKeyValueRow(
                                     leftLabel: 'Aadhaar',
@@ -594,7 +578,7 @@ class GenerateVerificationPdfUsecase {
                                           'Crosscheck of the Home : ',
                                           style: labelStyle,
                                         ),
-                                        checkbox(false),
+                                        checkbox(isRented),
                                         pw.SizedBox(width: 4),
                                         pw.Text(
                                           'Rented',
@@ -603,7 +587,7 @@ class GenerateVerificationPdfUsecase {
                                           ),
                                         ),
                                         pw.SizedBox(width: 12),
-                                        checkbox(false),
+                                        checkbox(isOwned),
                                         pw.SizedBox(width: 4),
                                         pw.Text(
                                           'Owned',
@@ -832,6 +816,51 @@ class GenerateVerificationPdfUsecase {
         },
       ),
     );
+
+    if (additionalPhotos.isNotEmpty) {
+      doc.addPage(
+        pw.Page(
+          pageFormat: PdfPageFormat.a4,
+          theme: theme,
+          margin: const pw.EdgeInsets.all(18),
+          build: (context) {
+            return pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text(
+                  'Additional Photos',
+                  style: pw.TextStyle(
+                    fontSize: 12,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+                pw.SizedBox(height: 10),
+                pw.Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: List.generate(additionalPhotos.length, (index) {
+                    return pw.Container(
+                      width: 170,
+                      height: 170,
+                      decoration: pw.BoxDecoration(
+                        border: pw.Border.all(
+                          color: PdfColors.grey700,
+                          width: 0.8,
+                        ),
+                      ),
+                      child: pw.Image(
+                        pw.MemoryImage(additionalPhotos[index]),
+                        fit: pw.BoxFit.cover,
+                      ),
+                    );
+                  }),
+                ),
+              ],
+            );
+          },
+        ),
+      );
+    }
 
     final safeName = _sanitizeFileName(employeeName);
     final fileName = '${safeName}_${now.millisecondsSinceEpoch}.pdf';

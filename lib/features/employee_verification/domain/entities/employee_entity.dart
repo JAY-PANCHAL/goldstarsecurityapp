@@ -20,6 +20,8 @@ class EmployeeEntity {
   final String? aadhar;
   final String? gender;
   final String? pan;
+  final String? age;
+  final String? homeType;
   final String? spouseName;
   final String? fatherName;
 
@@ -45,6 +47,8 @@ class EmployeeEntity {
     this.aadhar,
     this.gender,
     this.pan,
+    this.age,
+    this.homeType,
     this.spouseName,
     this.fatherName,
   });

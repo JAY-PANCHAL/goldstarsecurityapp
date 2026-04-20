@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:golstarsecurityapplatest/app/constants/india_states.dart';
 import 'package:golstarsecurityapplatest/app/themes/app_colors.dart';
 import 'package:golstarsecurityapplatest/core/widgets/error_snackbar.dart';
 import 'package:golstarsecurityapplatest/core/widgets/glass_card.dart';
@@ -36,6 +37,17 @@ class _EmpVerificationFormState extends State<EmpVerificationForm> {
     final uri = Uri(scheme: 'tel', path: digits);
     final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (!ok) ErrorSnackbar.show('Could not open phone dialer');
+  }
+
+  Future<void> _openEmailComposer(String email) async {
+    final trimmed = email.trim();
+    if (trimmed.isEmpty) {
+      ErrorSnackbar.show('Email not available');
+      return;
+    }
+    final uri = Uri(scheme: 'mailto', path: trimmed);
+    final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!ok) ErrorSnackbar.show('Could not open email app');
   }
 
   Future<void> _openGoogleMaps({
@@ -122,6 +134,7 @@ class _EmpVerificationFormState extends State<EmpVerificationForm> {
                             _infoRow('Name', emp.empName),
                             _infoRow('Code', emp.empCode),
                             _infoRow('Gender', emp.gender ?? ''),
+                            _infoRow('Age', emp.age ?? ''),
                             _infoRow(
                               'Mobile',
                               emp.mobileNo ?? '',
@@ -138,8 +151,15 @@ class _EmpVerificationFormState extends State<EmpVerificationForm> {
                                   : () => _openDialer(emp.altMobileNo ?? ''),
                               trailingIcon: Icons.call,
                             ),
-                            _infoRow('Email Official', emp.emailOfficial ?? ''),
-                            _infoRow('Email Personal', emp.emailPersonal ?? ''),
+                            _infoRow(
+                              'Email Official',
+                              emp.emailOfficial ?? '',
+                              onTap: (emp.emailOfficial ?? '').trim().isEmpty
+                                  ? null
+                                  : () =>
+                                      _openEmailComposer(emp.emailOfficial!),
+                              trailingIcon: Icons.mail_outline,
+                            ),
                             if ((emp.createdDate ?? '').trim().isNotEmpty)
                               _infoRow('Created', emp.createdDate ?? ''),
                             if ((emp.verificationDate ?? '').trim().isNotEmpty ||
@@ -265,9 +285,57 @@ class _EmpVerificationFormState extends State<EmpVerificationForm> {
                                 label: 'City',
                               ),
                               const SizedBox(height: 8),
-                              GlassInput(
-                                controller: controller.newState,
-                                label: 'State',
+                              DropdownButtonFormField<String>(
+                                value: controller.selectedNewState.value.isEmpty
+                                    ? null
+                                    : controller.selectedNewState.value,
+                                isExpanded: true,
+                                hint: const Text(
+                                  'Select State',
+                                  style: TextStyle(color: Colors.white70),
+                                ),
+                                items: indiaStatesAndUts
+                                    .map(
+                                      (state) => DropdownMenuItem<String>(
+                                        value: state,
+                                        child: Text(
+                                          state,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    )
+                                    .toList(),
+                                selectedItemBuilder: (context) {
+                                  return indiaStatesAndUts
+                                      .map(
+                                        (state) => Text(
+                                          state,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      )
+                                      .toList();
+                                },
+                                onChanged: (value) {
+                                  if (value == null) return;
+                                  controller.setNewState(value);
+                                },
+                                validator: (value) {
+                                  if (!controller.addressConfirmed.value &&
+                                      (value == null || value.trim().isEmpty)) {
+                                    return 'Please select state';
+                                  }
+                                  return null;
+                                },
+                                dropdownColor: Colors.black87,
+                                style: const TextStyle(color: Colors.white),
+                                decoration: const InputDecoration(
+                                  labelText: 'State',
+                                ),
                               ),
                               const SizedBox(height: 8),
                               // PIN: numeric keyboard, 6-digit validation
@@ -279,6 +347,55 @@ class _EmpVerificationFormState extends State<EmpVerificationForm> {
                                 validator: _pinValidator,
                               ),
                             ],
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Home Type',
+                              style: TextStyle(color: Colors.white70),
+                            ),
+                            const SizedBox(height: 6),
+                            Wrap(
+                              spacing: 8,
+                              children: [
+                                ChoiceChip(
+                                  label: const Text('Rented'),
+                                  selected: controller.homeType.value
+                                          .trim()
+                                          .toLowerCase() ==
+                                      'rented',
+                                  onSelected: (_) =>
+                                      controller.homeType.value = 'Rented',
+                                  selectedColor: AppColors.accentGold,
+                                  labelStyle: TextStyle(
+                                    color: controller.homeType.value
+                                                .trim()
+                                                .toLowerCase() ==
+                                            'rented'
+                                        ? AppColors.primary
+                                        : Colors.white,
+                                  ),
+                                  backgroundColor: Colors.white10,
+                                ),
+                                ChoiceChip(
+                                  label: const Text('Owned'),
+                                  selected: controller.homeType.value
+                                          .trim()
+                                          .toLowerCase() ==
+                                      'owned',
+                                  onSelected: (_) =>
+                                      controller.homeType.value = 'Owned',
+                                  selectedColor: AppColors.accentGold,
+                                  labelStyle: TextStyle(
+                                    color: controller.homeType.value
+                                                .trim()
+                                                .toLowerCase() ==
+                                            'owned'
+                                        ? AppColors.primary
+                                        : Colors.white,
+                                  ),
+                                  backgroundColor: Colors.white10,
+                                ),
+                              ],
+                            ),
                             const SizedBox(height: 8),
                             Row(
                               children: [
@@ -309,40 +426,69 @@ class _EmpVerificationFormState extends State<EmpVerificationForm> {
                             ),
                             const SizedBox(height: 8),
                             ElevatedButton(
-                              onPressed: controller.capturePhoto,
-                              child: const Text('Capture Employee Photo'),
+                              onPressed: controller.employeePhotos.length >= 5
+                                  ? null
+                                  : controller.capturePhoto,
+                              child: Text(
+                                'Capture Photo (${controller.employeePhotos.length}/5)',
+                              ),
                             ),
-                            if (controller.employeePhoto.value != null) ...[
+                            if (controller.employeePhotos.isNotEmpty) ...[
                               const SizedBox(height: 10),
                               ClipRRect(
                                 borderRadius: BorderRadius.circular(12),
                                 child: Image.memory(
-                                  controller.employeePhoto.value!,
+                                  controller.employeePhotos.first,
                                   height: 180,
                                   width: double.infinity,
                                   fit: BoxFit.cover,
                                 ),
                               ),
                               const SizedBox(height: 6),
-                              Row(
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
                                 children: [
-                                  IconButton(
-                                    onPressed: controller.capturePhoto,
-                                    icon: const Icon(
-                                      Icons.camera_alt_outlined,
-                                      color: Colors.white,
+                                  for (var i = 0;
+                                      i < controller.employeePhotos.length;
+                                      i++)
+                                    Stack(
+                                      clipBehavior: Clip.none,
+                                      children: [
+                                        ClipRRect(
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                          child: Image.memory(
+                                            controller.employeePhotos[i],
+                                            width: 72,
+                                            height: 72,
+                                            fit: BoxFit.cover,
+                                          ),
+                                        ),
+                                        Positioned(
+                                          right: -6,
+                                          top: -6,
+                                          child: GestureDetector(
+                                            onTap: () =>
+                                                controller.removeEmployeePhoto(
+                                                    i),
+                                            child: Container(
+                                              decoration: const BoxDecoration(
+                                                color: Colors.redAccent,
+                                                shape: BoxShape.circle,
+                                              ),
+                                              padding:
+                                                  const EdgeInsets.all(2),
+                                              child: const Icon(
+                                                Icons.close,
+                                                size: 14,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                    tooltip: 'Recapture',
-                                  ),
-                                  IconButton(
-                                    onPressed: () =>
-                                        controller.employeePhoto.value = null,
-                                    icon: const Icon(
-                                      Icons.delete_outline,
-                                      color: Colors.redAccent,
-                                    ),
-                                    tooltip: 'Delete',
-                                  ),
                                 ],
                               ),
                             ],
@@ -1095,7 +1241,7 @@ class _EmpVerificationFormState extends State<EmpVerificationForm> {
   }
 
   bool _hasUnsavedChanges(VerificationFormController controller) {
-    if (controller.employeePhoto.value != null) return true;
+    if (controller.employeePhotos.isNotEmpty) return true;
     if (controller.gps.value.isNotEmpty) return true;
     if (controller.status.value.isNotEmpty) return true;
     if (!controller.addressConfirmed.value) return true;
@@ -1148,7 +1294,7 @@ class _EmpVerificationFormState extends State<EmpVerificationForm> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Keep Editing'),
+              child: const Text('Keep Editing',style: TextStyle(color: Colors.white)),
             ),
             ElevatedButton(
               onPressed: () => Navigator.of(context).pop(true),
@@ -1199,15 +1345,21 @@ class _EmpVerificationFormState extends State<EmpVerificationForm> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
+              style: TextButton.styleFrom(foregroundColor: Colors.white),
               child: const Text('Cancel'),
             ),
             TextButton(
               onPressed: () => tempController.clear(),
+              style: TextButton.styleFrom(foregroundColor: Colors.white),
               child: const Text('Clear'),
             ),
             ElevatedButton(
               onPressed: () => Navigator.of(context)
                   .pop(List<Point>.from(tempController.points)),
+              style: ElevatedButton.styleFrom(
+                foregroundColor: Colors.white,
+                backgroundColor: AppColors.accentGold,
+              ),
               child: const Text('Save'),
             ),
           ],

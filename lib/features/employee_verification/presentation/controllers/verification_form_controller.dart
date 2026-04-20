@@ -50,6 +50,7 @@ class VerificationFormController extends GetxController {
   final newAdd2 = TextEditingController();
   final newCity = TextEditingController();
   final newState = TextEditingController();
+  final RxString selectedNewState = ''.obs;
   final newPin = TextEditingController();
 
   // GPS
@@ -80,7 +81,8 @@ class VerificationFormController extends GetxController {
   final rejectionReason = TextEditingController();
 
   // Images and signatures
-  final Rx<Uint8List?> employeePhoto = Rx<Uint8List?>(null);
+  final RxList<Uint8List> employeePhotos = <Uint8List>[].obs;
+  final RxString homeType = ''.obs;
   final SignatureController verifierSignature = SignatureController(
     penColor: Colors.black,
     penStrokeWidth: 3.5,
@@ -102,6 +104,7 @@ class VerificationFormController extends GetxController {
     employee.value = entity;
     fatherName.text = _apiValueOrEmpty(entity.fatherName);
     spouseName.text = _apiValueOrEmpty(entity.spouseName);
+    homeType.value = _apiValueOrEmpty(entity.homeType);
   }
 
   String _apiValueOrEmpty(String? value) {
@@ -134,13 +137,27 @@ class VerificationFormController extends GetxController {
   }
 
   Future<void> capturePhoto() async {
+    if (employeePhotos.length >= 5) {
+      ErrorSnackbar.show('Maximum 5 photos allowed');
+      return;
+    }
     final picker = ImagePicker();
     final image = await picker.pickImage(
       source: ImageSource.camera,
       imageQuality: 70,
     );
     if (image == null) return;
-    employeePhoto.value = await image.readAsBytes();
+    employeePhotos.add(await image.readAsBytes());
+  }
+
+  void removeEmployeePhoto(int index) {
+    if (index < 0 || index >= employeePhotos.length) return;
+    employeePhotos.removeAt(index);
+  }
+
+  void setNewState(String value) {
+    selectedNewState.value = value;
+    newState.text = value;
   }
 
   Future<void> submit() async {
@@ -202,7 +219,7 @@ class VerificationFormController extends GetxController {
       final pdfFile = await pdfUsecase(
         data: data,
         employeeName: employee.value!.empName,
-        employeePhoto: employeePhoto.value,
+        employeePhotos: employeePhotos.toList(),
         verifierSignature: verifierSig,
         employeeSignature: employeeSig,
         createdDate: employee.value!.createdDate,
@@ -289,9 +306,9 @@ class VerificationFormController extends GetxController {
         'Mobile': safeText(emp.mobileNo),
         'Alt Mobile': safeText(emp.altMobileNo),
         'Email Official': safeText(emp.emailOfficial),
-        'Email Personal': safeText(emp.emailPersonal),
         'Aadhaar': safeText(emp.aadhar),
         'PAN': safeText(emp.pan),
+        'Age': safeText(emp.age),
       },
       'addressDetails': {
         'Address Confirmed': safeBool(addressConfirmed.value),
@@ -303,6 +320,7 @@ class VerificationFormController extends GetxController {
                 '${newAdd1.text} ${newAdd2.text} ${newCity.text} ${newState.text} ${newPin.text}',
               ),
         'GPS': safeText(gps.value),
+        'Home Type': safeText(homeType.value),
       },
       'familyDetails': {
         'Father': safeText(fatherName.text),
@@ -337,6 +355,7 @@ class VerificationFormController extends GetxController {
     newAdd2.clear();
     newCity.clear();
     newState.clear();
+    selectedNewState.value = '';
     newPin.clear();
 
     gps.value = '';
@@ -365,7 +384,8 @@ class VerificationFormController extends GetxController {
     status.value = '';
     rejectionReason.clear();
 
-    employeePhoto.value = null;
+    employeePhotos.clear();
+    homeType.value = '';
     verifierSignature.clear();
     employeeSignature.clear();
     verifierSignatureImage.value = null;
