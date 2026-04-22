@@ -168,6 +168,18 @@ class VerificationFormController extends GetxController {
       ErrorSnackbar.show('Please select verification status');
       return;
     }
+    // Mandatory evidence only when marking as Verified.
+    // Rejected entries may be submitted without GPS/photo.
+    if (status.value == 'Verified') {
+      if (gps.value.trim().isEmpty) {
+        ErrorSnackbar.show('Please capture GPS location');
+        return;
+      }
+      if (employeePhotos.isEmpty) {
+        ErrorSnackbar.show('Please capture at least 1 employee photo');
+        return;
+      }
+    }
     // References: prevent half-filled rows in all cases
     final r1Name = ref1Name.text.trim();
     final r1Mobile = ref1Mobile.text.trim();
