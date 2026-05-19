@@ -1,6 +1,6 @@
 class ApiConstants {
   static const String baseUrl =
-      'https://workforce.goldstarjewellery.com/webapi/api';
+      'https://accordapi.goldstarjewellery.com/webAPI/api';
 
   // Auth
   static const String setAuthentication = '/setAuthentication';

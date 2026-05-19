@@ -108,9 +108,26 @@ class VerificationFormController extends GetxController {
   }
 
   String _apiValueOrEmpty(String? value) {
-    final v = (value ?? '').trim();
+    final v = _sanitizeDisplayText(value);
     if (v.isEmpty || v == '-') return '';
     return v;
+  }
+
+  String _sanitizeDisplayText(String? input) {
+    final raw = (input ?? '').replaceAll('—', '-');
+    final filtered = String.fromCharCodes(
+      raw.runes.where(
+        (cp) =>
+            cp != 0xFFFD && // replacement character (often rendered as unknown box)
+            cp != 0x200B && // zero-width space
+            cp != 0x200C && // zero-width non-joiner
+            cp != 0x200D && // zero-width joiner
+            cp != 0xFEFF && // zero-width no-break space / BOM
+            !(cp >= 0x0000 && cp <= 0x001F) &&
+            !(cp >= 0x007F && cp <= 0x009F),
+      ),
+    );
+    return filtered.replaceAll(RegExp(r'\s+'), ' ').trim();
   }
 
   void addChild() {
@@ -296,7 +313,7 @@ class VerificationFormController extends GetxController {
   Map<String, dynamic> _buildPdfData() {
     final emp = employee.value!;
     String safeText(String? value) {
-      final v = (value ?? '').replaceAll('—', '-').trim();
+      final v = _sanitizeDisplayText(value);
       return v.isEmpty ? '-' : v;
     }
 
