@@ -28,6 +28,24 @@ class ChildInfo {
   }
 }
 
+class RelativeInfo {
+  final TextEditingController relativeName = TextEditingController();
+  final TextEditingController relationship = TextEditingController();
+  final TextEditingController companyName = TextEditingController();
+  final TextEditingController department = TextEditingController();
+  final TextEditingController unitLocation = TextEditingController();
+  final TextEditingController contactNumber = TextEditingController();
+
+  void dispose() {
+    relativeName.dispose();
+    relationship.dispose();
+    companyName.dispose();
+    department.dispose();
+    unitLocation.dispose();
+    contactNumber.dispose();
+  }
+}
+
 class VerificationFormController extends GetxController {
   final SubmitVerificationUsecase submitUsecase;
   final GenerateVerificationPdfUsecase pdfUsecase;
@@ -62,9 +80,10 @@ class VerificationFormController extends GetxController {
   final fatherName = TextEditingController();
   final motherName = TextEditingController();
   final spouseName = TextEditingController();
-  final brotherName = TextEditingController();
-  final sisterName = TextEditingController();
   final RxList<ChildInfo> children = <ChildInfo>[].obs;
+
+  // Gold Star working relatives
+  final RxList<RelativeInfo> relatives = <RelativeInfo>[].obs;
 
   // References
   final ref1Name = TextEditingController();
@@ -138,6 +157,15 @@ class VerificationFormController extends GetxController {
   void removeChild(int index) {
     children[index].dispose();
     children.removeAt(index);
+  }
+
+  void addRelative() {
+    relatives.add(RelativeInfo());
+  }
+
+  void removeRelative(int index) {
+    relatives[index].dispose();
+    relatives.removeAt(index);
   }
 
   Future<void> captureGps() async {
@@ -259,8 +287,8 @@ class VerificationFormController extends GetxController {
       pdfFilePath = pdfFile.path;
 
       final size = await FileUtils.fileSize(pdfFile);
-      if (size > 5 * 1024 * 1024) {
-        ErrorSnackbar.show('PDF exceeds 5MB limit');
+      if (size > 4 * 1024 * 1024) {
+        ErrorSnackbar.show('PDF exceeds 4MB limit');
         return;
       }
 
@@ -355,10 +383,22 @@ class VerificationFormController extends GetxController {
         'Father': safeText(fatherName.text),
         'Mother': safeText(motherName.text),
         'Spouse': safeText(spouseName.text),
-        'Brother': safeText(brotherName.text),
-        'Sister': safeText(sisterName.text),
         'Children': childrenText,
       },
+      'relativesDetails': relatives.isEmpty
+          ? <Map<String, String>>[]
+          : relatives
+              .map(
+                (r) => {
+                  'Relative Name': safeText(r.relativeName.text),
+                  'Relationship': safeText(r.relationship.text),
+                  'Company Name': safeText(r.companyName.text),
+                  'Department': safeText(r.department.text),
+                  'Unit Location': safeText(r.unitLocation.text),
+                  'Contact Number': safeText(r.contactNumber.text),
+                },
+              )
+              .toList(),
       'references': {
         'Ref1': safeText(
           '${ref1Name.text} - ${ref1Mobile.text}',
@@ -394,13 +434,16 @@ class VerificationFormController extends GetxController {
     fatherName.clear();
     motherName.clear();
     spouseName.clear();
-    brotherName.clear();
-    sisterName.clear();
 
     for (final child in children) {
       child.dispose();
     }
     children.clear();
+
+    for (final relative in relatives) {
+      relative.dispose();
+    }
+    relatives.clear();
 
     ref1Name.clear();
     ref1Mobile.clear();
@@ -434,8 +477,9 @@ class VerificationFormController extends GetxController {
     fatherName.dispose();
     motherName.dispose();
     spouseName.dispose();
-    brotherName.dispose();
-    sisterName.dispose();
+    for (final relative in relatives) {
+      relative.dispose();
+    }
     ref1Name.dispose();
     ref1Mobile.dispose();
     ref2Name.dispose();

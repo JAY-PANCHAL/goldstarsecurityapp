@@ -525,16 +525,6 @@ class _EmpVerificationFormState extends State<EmpVerificationForm> {
                               label: 'Spouse Name',
                             ),
                             const SizedBox(height: 8),
-                            GlassInput(
-                              controller: controller.brotherName,
-                              label: 'Brother Name',
-                            ),
-                            const SizedBox(height: 8),
-                            GlassInput(
-                              controller: controller.sisterName,
-                              label: 'Sister Name',
-                            ),
-                            const SizedBox(height: 8),
                             Row(
                               children: [
                                 const Text(
@@ -676,6 +666,166 @@ class _EmpVerificationFormState extends State<EmpVerificationForm> {
                                   },
                                 ),
                               ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // ── Gold Star Working Relatives ────────────────────
+                      GlassCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Expanded(
+                                  child: Text(
+                                    'Gold Star Working Relatives',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                                IconButton(
+                                  onPressed: controller.addRelative,
+                                  icon: const Icon(
+                                    Icons.add_circle_outline,
+                                    color: AppColors.accentGold,
+                                    size: 22,
+                                  ),
+                                  tooltip: 'Add Relative',
+                                ),
+                              ],
+                            ),
+                            const Text(
+                              'Declare any employee relative working with Gold Star Group',
+                              style: TextStyle(
+                                color: Colors.white60,
+                                fontSize: 11,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Obx(
+                              () => controller.relatives.isEmpty
+                                  ? const Padding(
+                                      padding: EdgeInsets.symmetric(vertical: 8),
+                                      child: Text(
+                                        'No relatives added. Tap ++ to add.',
+                                        style: TextStyle(
+                                          color: Colors.white38,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    )
+                                  : Column(
+                                      children: List.generate(
+                                        controller.relatives.length,
+                                        (index) {
+                                          final rel =
+                                              controller.relatives[index];
+                                          return Padding(
+                                            padding: const EdgeInsets.only(
+                                              bottom: 12,
+                                            ),
+                                            child: Stack(
+                                              clipBehavior: Clip.none,
+                                              children: [
+                                                Container(
+                                                  padding:
+                                                      const EdgeInsets.fromLTRB(
+                                                          12, 36, 12, 16),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.white
+                                                        .withOpacity(0.06),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            14),
+                                                    border: Border.all(
+                                                      color: Colors.white24,
+                                                    ),
+                                                  ),
+                                                  child: Column(
+                                                    children: [
+                                                      const SizedBox(height: 20),
+                                                      GlassInput(
+                                                        controller:
+                                                            rel.relativeName,
+                                                        label: 'Relative Name',
+                                                      ),
+                                                      const SizedBox(height: 8),
+                                                      GlassInput(
+                                                        controller:
+                                                            rel.relationship,
+                                                        label: 'Relationship',
+                                                      ),
+                                                      const SizedBox(height: 8),
+                                                      GlassInput(
+                                                        controller:
+                                                            rel.companyName,
+                                                        label: 'Company Name',
+                                                      ),
+                                                      const SizedBox(height: 8),
+                                                      GlassInput(
+                                                        controller:
+                                                            rel.department,
+                                                        label: 'Department',
+                                                      ),
+                                                      const SizedBox(height: 8),
+                                                      GlassInput(
+                                                        controller:
+                                                            rel.unitLocation,
+                                                        label: 'Unit Location',
+                                                      ),
+                                                      const SizedBox(height: 8),
+                                                      GlassInput(
+                                                        controller:
+                                                            rel.contactNumber,
+                                                        label: 'Contact Number',
+                                                        keyboardType:
+                                                            TextInputType.phone,
+                                                        maxLength: 10,
+                                                        validator:
+                                                            _mobileValidator,
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                                Positioned(
+                                                  top: 6,
+                                                  right: 6,
+                                                  child: GestureDetector(
+                                                    onTap: () => controller
+                                                        .removeRelative(index),
+                                                    child: Container(
+                                                      width: 26,
+                                                      height: 26,
+                                                      decoration: BoxDecoration(
+                                                        color: Colors.redAccent
+                                                            .withOpacity(0.15),
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                                6),
+                                                        border: Border.all(
+                                                          color: Colors.redAccent
+                                                              .withOpacity(0.4),
+                                                        ),
+                                                      ),
+                                                      child: const Icon(
+                                                        Icons.close,
+                                                        size: 16,
+                                                        color: Colors.redAccent,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ),
                             ),
                           ],
                         ),
@@ -1258,8 +1408,6 @@ class _EmpVerificationFormState extends State<EmpVerificationForm> {
       controller.fatherName,
       controller.motherName,
       controller.spouseName,
-      controller.brotherName,
-      controller.sisterName,
       controller.ref1Name,
       controller.ref1Mobile,
       controller.ref2Name,
@@ -1273,6 +1421,10 @@ class _EmpVerificationFormState extends State<EmpVerificationForm> {
     for (final child in controller.children) {
       if (child.name.text.trim().isNotEmpty) return true;
       if (child.dob.text.trim().isNotEmpty) return true;
+    }
+    for (final rel in controller.relatives) {
+      if (rel.relativeName.text.trim().isNotEmpty) return true;
+      if (rel.relationship.text.trim().isNotEmpty) return true;
     }
     return false;
   }

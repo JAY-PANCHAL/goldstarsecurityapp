@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/services.dart';
+import 'package:image/image.dart' as img;
 import 'package:golstarsecurityapplatest/core/utils/public_downloads_exporter.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
@@ -26,7 +27,6 @@ class GenerateVerificationPdfUsecase {
     );
     final theme = pw.ThemeData.withFont(base: regular, bold: bold);
 
-    final doc = pw.Document();
     final now = DateTime.now();
     final generatedAtText = DateFormat('dd/MM/yyyy').format(now);
     final scheduleText =
@@ -39,6 +39,9 @@ class GenerateVerificationPdfUsecase {
         (data['addressDetails'] as Map<String, dynamic>?) ?? const {};
     final familyDetails =
         (data['familyDetails'] as Map<String, dynamic>?) ?? const {};
+    final relativesDetails = (data['relativesDetails'] as List<dynamic>?)
+            ?.cast<Map<String, dynamic>>() ??
+        const <Map<String, dynamic>>[];
     final references =
         (data['references'] as Map<String, dynamic>?) ?? const {};
     final criminalRecord =
@@ -81,12 +84,13 @@ class GenerateVerificationPdfUsecase {
     final homeTypeText = v(addressDetails, 'Home Type').toLowerCase();
     final isRented = homeTypeText.contains('rent');
     final isOwned = homeTypeText.contains('own');
-    final Uint8List? firstPhoto = employeePhotos.isEmpty
-        ? null
-        : employeePhotos.first;
-    final List<Uint8List> additionalPhotos = employeePhotos.length > 1
-        ? employeePhotos.skip(1).take(4).toList()
-        : const <Uint8List>[];
+    // ── Document builder — invoked once per compression attempt ─────────────
+    Future<List<int>> buildAndSave(List<Uint8List> photos) async {
+      final Uint8List? firstPhoto = photos.isEmpty ? null : photos.first;
+      final List<Uint8List> additionalPhotos = photos.length > 1
+          ? photos.skip(1).take(4).toList()
+          : const <Uint8List>[];
+      final doc = pw.Document();
 
     doc.addPage(
       pw.Page(
@@ -220,6 +224,38 @@ class GenerateVerificationPdfUsecase {
                   ),
                   pw.Expanded(child: underlineValue(value, maxLines: maxLines)),
                 ],
+              ),
+            );
+          }
+
+          pw.Widget relCell(
+            String text,
+            pw.TextStyle style, {
+            int flex = 1,
+            bool isHeader = false,
+          }) {
+            return pw.Expanded(
+              flex: flex,
+              child: pw.Container(
+                padding: const pw.EdgeInsets.symmetric(
+                  horizontal: 4,
+                  vertical: 3,
+                ),
+                decoration: pw.BoxDecoration(
+                  color: isHeader ? PdfColors.grey200 : null,
+                  border: const pw.Border(
+                    right: pw.BorderSide(
+                      color: PdfColors.grey700,
+                      width: 0.8,
+                    ),
+                  ),
+                ),
+                child: pw.Text(
+                  text,
+                  style: style,
+                  maxLines: 2,
+                  overflow: pw.TextOverflow.clip,
+                ),
               ),
             );
           }
@@ -627,16 +663,6 @@ class GenerateVerificationPdfUsecase {
                                     labelWidth: 60,
                                   ),
                                   lineField(
-                                    label: 'Brother',
-                                    value: v(familyDetails, 'Brother'),
-                                    labelWidth: 60,
-                                  ),
-                                  lineField(
-                                    label: 'Sister',
-                                    value: v(familyDetails, 'Sister'),
-                                    labelWidth: 60,
-                                  ),
-                                  lineField(
                                     label: 'Children',
                                     value: v(familyDetails, 'Children'),
                                     labelWidth: 60,
@@ -648,6 +674,83 @@ class GenerateVerificationPdfUsecase {
                             photoBox(),
                           ],
                         ),
+                      ],
+                    ),
+                  ),
+                  pw.SizedBox(height: 8),
+
+                  // Gold Star Working Relatives
+                  boxed(
+                    pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+                      children: [
+                        sectionTitle('Gold Star Working Relatives'),
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 3,
+                          ),
+                          child: pw.Text(
+                            'Declare any employee relative working with Gold Star Group',
+                            style: const pw.TextStyle(fontSize: 8),
+                          ),
+                        ),
+                        // Table header
+                        pw.Container(
+                          decoration: const pw.BoxDecoration(
+                            color: PdfColors.grey200,
+                            border: pw.Border(
+                              bottom: pw.BorderSide(
+                                color: borderColor,
+                                width: hairline,
+                              ),
+                            ),
+                          ),
+                          child: pw.Row(
+                            children: [
+                              relCell('Relative Name', labelStyle, flex: 2, isHeader: true),
+                              relCell('Relationship', labelStyle, flex: 2, isHeader: true),
+                              relCell('Company', labelStyle, flex: 2, isHeader: true),
+                              relCell('Department', labelStyle, flex: 2, isHeader: true),
+                              relCell('Unit / Location', labelStyle, flex: 2, isHeader: true),
+                              relCell('Contact No.', labelStyle, flex: 2, isHeader: true),
+                            ],
+                          ),
+                        ),
+                        if (relativesDetails.isEmpty)
+                          pw.Container(
+                            padding: const pw.EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 5,
+                            ),
+                            child: pw.Text(
+                              'NIL',
+                              style: const pw.TextStyle(fontSize: 9),
+                            ),
+                          )
+                        else
+                          ...relativesDetails.map(
+                            (rel) => pw.Container(
+                              decoration: const pw.BoxDecoration(
+                                border: pw.Border(
+                                  bottom: pw.BorderSide(
+                                    color: borderColor,
+                                    width: hairline,
+                                  ),
+                                ),
+                              ),
+                              child: pw.Row(
+                                children: [
+                                  relCell(rel['Relative Name'] ?? '-', valueStyle, flex: 2),
+                                  relCell(rel['Relationship'] ?? '-', valueStyle, flex: 2),
+                                  relCell(rel['Company Name'] ?? '-', valueStyle, flex: 2),
+                                  relCell(rel['Department'] ?? '-', valueStyle, flex: 2),
+                                  relCell(rel['Unit Location'] ?? '-', valueStyle, flex: 2),
+                                  relCell(rel['Contact Number'] ?? '-', valueStyle, flex: 2),
+                                ],
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                   ),
@@ -862,20 +965,62 @@ class GenerateVerificationPdfUsecase {
       );
     }
 
+      return await doc.save();
+    } // end buildAndSave
+
+    // ── Progressive compression: target ≤ 4 MB ──────────────────────────────
+    const maxPdfSize = 4 * 1024 * 1024; // 4 MB
+    // Each step reduces max image dimension and JPEG quality progressively.
+    const compressionSteps = [
+      (maxDim: 1200, quality: 80),
+      (maxDim: 900,  quality: 65),
+      (maxDim: 700,  quality: 50),
+      (maxDim: 500,  quality: 35),
+    ];
+
+    var pdfBytes = await buildAndSave(employeePhotos);
+
+    if (pdfBytes.length > maxPdfSize && employeePhotos.isNotEmpty) {
+      for (final step in compressionSteps) {
+        final compressed = await Future.wait(
+          employeePhotos.map((p) async {
+            try {
+              final decoded = img.decodeImage(p);
+              if (decoded == null) return p;
+              img.Image processed = decoded;
+              if (decoded.width > step.maxDim || decoded.height > step.maxDim) {
+                processed = img.copyResize(
+                  decoded,
+                  width: decoded.width >= decoded.height ? step.maxDim : null,
+                  height: decoded.height > decoded.width ? step.maxDim : null,
+                );
+              }
+              return Uint8List.fromList(
+                img.encodeJpg(processed, quality: step.quality),
+              );
+            } catch (_) {
+              return p; // fall back to original if compression fails
+            }
+          }),
+        );
+        pdfBytes = await buildAndSave(compressed);
+        if (pdfBytes.length <= maxPdfSize) break;
+      }
+    }
+
     final safeName = _sanitizeFileName(employeeName);
     final fileName = '${safeName}_${now.millisecondsSinceEpoch}.pdf';
-    final bytes = await doc.save();
 
     // Keep a private copy for upload. Public Downloads on Android is created
     // via MediaStore and often does not provide a filesystem path usable by Dio.
     final dir = await getApplicationDocumentsDirectory();
     final file = File('${dir.path}/$fileName');
-    await file.writeAsBytes(bytes);
+    await file.writeAsBytes(pdfBytes);
 
     if (Platform.isAndroid) {
       // Best-effort export to public Downloads so user can see it.
       await PublicDownloadsExporter.savePdfToPublicDownloads(
-        bytes: Uint8List.fromList(bytes),
+        bytes: Uint8List.fromList(pdfBytes),
         fileName: fileName,
       );
     }
