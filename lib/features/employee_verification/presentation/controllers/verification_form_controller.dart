@@ -46,6 +46,16 @@ class RelativeInfo {
   }
 }
 
+class FamilyMemberInfo {
+  final TextEditingController name = TextEditingController();
+  final TextEditingController relationship = TextEditingController();
+
+  void dispose() {
+    name.dispose();
+    relationship.dispose();
+  }
+}
+
 class VerificationFormController extends GetxController {
   final SubmitVerificationUsecase submitUsecase;
   final GenerateVerificationPdfUsecase pdfUsecase;
@@ -81,6 +91,9 @@ class VerificationFormController extends GetxController {
   final motherName = TextEditingController();
   final spouseName = TextEditingController();
   final RxList<ChildInfo> children = <ChildInfo>[].obs;
+
+  // Family members (name + relationship only)
+  final RxList<FamilyMemberInfo> familyMembers = <FamilyMemberInfo>[].obs;
 
   // Gold Star working relatives
   final RxList<RelativeInfo> relatives = <RelativeInfo>[].obs;
@@ -157,6 +170,15 @@ class VerificationFormController extends GetxController {
   void removeChild(int index) {
     children[index].dispose();
     children.removeAt(index);
+  }
+
+  void addFamilyMember() {
+    familyMembers.add(FamilyMemberInfo());
+  }
+
+  void removeFamilyMember(int index) {
+    familyMembers[index].dispose();
+    familyMembers.removeAt(index);
   }
 
   void addRelative() {
@@ -385,6 +407,16 @@ class VerificationFormController extends GetxController {
         'Spouse': safeText(spouseName.text),
         'Children': childrenText,
       },
+      'familyMembersDetails': familyMembers.isEmpty
+          ? <Map<String, String>>[]
+          : familyMembers
+              .map(
+                (m) => {
+                  'Name': safeText(m.name.text),
+                  'Relationship': safeText(m.relationship.text),
+                },
+              )
+              .toList(),
       'relativesDetails': relatives.isEmpty
           ? <Map<String, String>>[]
           : relatives
@@ -440,6 +472,11 @@ class VerificationFormController extends GetxController {
     }
     children.clear();
 
+    for (final member in familyMembers) {
+      member.dispose();
+    }
+    familyMembers.clear();
+
     for (final relative in relatives) {
       relative.dispose();
     }
@@ -477,6 +514,9 @@ class VerificationFormController extends GetxController {
     fatherName.dispose();
     motherName.dispose();
     spouseName.dispose();
+    for (final member in familyMembers) {
+      member.dispose();
+    }
     for (final relative in relatives) {
       relative.dispose();
     }

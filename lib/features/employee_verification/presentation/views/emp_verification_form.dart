@@ -672,6 +672,129 @@ class _EmpVerificationFormState extends State<EmpVerificationForm> {
                       ),
                       const SizedBox(height: 12),
 
+                      // ── Family Members ─────────────────────────────────
+                      GlassCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Expanded(
+                                  child: Text(
+                                    'Family Members',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                                IconButton(
+                                  onPressed: controller.addFamilyMember,
+                                  icon: const Icon(
+                                    Icons.add_circle_outline,
+                                    color: AppColors.accentGold,
+                                    size: 22,
+                                  ),
+                                  tooltip: 'Add Family Member',
+                                ),
+                              ],
+                            ),
+                            Obx(
+                              () => controller.familyMembers.isEmpty
+                                  ? const Padding(
+                                      padding: EdgeInsets.symmetric(vertical: 8),
+                                      child: Text(
+                                        'No family members added. Tap + to add.',
+                                        style: TextStyle(
+                                          color: Colors.white38,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    )
+                                  : Column(
+                                      children: List.generate(
+                                        controller.familyMembers.length,
+                                        (index) {
+                                          final member =
+                                              controller.familyMembers[index];
+                                          return Padding(
+                                            padding: const EdgeInsets.only(
+                                              bottom: 10,
+                                            ),
+                                            child: Stack(
+                                              clipBehavior: Clip.none,
+                                              children: [
+                                                Container(
+                                                  padding:
+                                                      const EdgeInsets.fromLTRB(
+                                                          12, 36, 12, 16),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.white
+                                                        .withOpacity(0.06),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            14),
+                                                    border: Border.all(
+                                                      color: Colors.white24,
+                                                    ),
+                                                  ),
+                                                  child: Column(
+                                                    children: [
+                                                      const SizedBox(height: 20),
+                                                      GlassInput(
+                                                        controller: member.name,
+                                                        label: 'Name',
+                                                      ),
+                                                      const SizedBox(height: 8),
+                                                      GlassInput(
+                                                        controller:
+                                                            member.relationship,
+                                                        label: 'Relationship',
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                                Positioned(
+                                                  top: 6,
+                                                  right: 6,
+                                                  child: GestureDetector(
+                                                    onTap: () => controller
+                                                        .removeFamilyMember(
+                                                            index),
+                                                    child: Container(
+                                                      width: 26,
+                                                      height: 26,
+                                                      decoration: BoxDecoration(
+                                                        color: Colors.redAccent
+                                                            .withOpacity(0.15),
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                                6),
+                                                        border: Border.all(
+                                                          color: Colors.redAccent
+                                                              .withOpacity(0.4),
+                                                        ),
+                                                      ),
+                                                      child: const Icon(
+                                                        Icons.close,
+                                                        size: 16,
+                                                        color: Colors.redAccent,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
                       // ── Gold Star Working Relatives ────────────────────
                       GlassCard(
                         child: Column(
@@ -1421,6 +1544,10 @@ class _EmpVerificationFormState extends State<EmpVerificationForm> {
     for (final child in controller.children) {
       if (child.name.text.trim().isNotEmpty) return true;
       if (child.dob.text.trim().isNotEmpty) return true;
+    }
+    for (final member in controller.familyMembers) {
+      if (member.name.text.trim().isNotEmpty) return true;
+      if (member.relationship.text.trim().isNotEmpty) return true;
     }
     for (final rel in controller.relatives) {
       if (rel.relativeName.text.trim().isNotEmpty) return true;

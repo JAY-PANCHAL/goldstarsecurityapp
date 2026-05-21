@@ -39,6 +39,10 @@ class GenerateVerificationPdfUsecase {
         (data['addressDetails'] as Map<String, dynamic>?) ?? const {};
     final familyDetails =
         (data['familyDetails'] as Map<String, dynamic>?) ?? const {};
+    final familyMembersDetails =
+        (data['familyMembersDetails'] as List<dynamic>?)
+                ?.cast<Map<String, dynamic>>() ??
+            const <Map<String, dynamic>>[];
     final relativesDetails = (data['relativesDetails'] as List<dynamic>?)
             ?.cast<Map<String, dynamic>>() ??
         const <Map<String, dynamic>>[];
@@ -674,6 +678,65 @@ class GenerateVerificationPdfUsecase {
                             photoBox(),
                           ],
                         ),
+                      ],
+                    ),
+                  ),
+                  pw.SizedBox(height: 8),
+
+                  // Family Members (Name + Relationship)
+                  boxed(
+                    pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+                      children: [
+                        sectionTitle('Family Members'),
+                        // Table header
+                        pw.Container(
+                          decoration: const pw.BoxDecoration(
+                            color: PdfColors.grey200,
+                            border: pw.Border(
+                              bottom: pw.BorderSide(
+                                color: borderColor,
+                                width: hairline,
+                              ),
+                            ),
+                          ),
+                          child: pw.Row(
+                            children: [
+                              relCell('Name', labelStyle, flex: 3, isHeader: true),
+                              relCell('Relationship', labelStyle, flex: 2, isHeader: true),
+                            ],
+                          ),
+                        ),
+                        if (familyMembersDetails.isEmpty)
+                          pw.Container(
+                            padding: const pw.EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 5,
+                            ),
+                            child: pw.Text(
+                              'NIL',
+                              style: const pw.TextStyle(fontSize: 9),
+                            ),
+                          )
+                        else
+                          ...familyMembersDetails.map(
+                            (m) => pw.Container(
+                              decoration: const pw.BoxDecoration(
+                                border: pw.Border(
+                                  bottom: pw.BorderSide(
+                                    color: borderColor,
+                                    width: hairline,
+                                  ),
+                                ),
+                              ),
+                              child: pw.Row(
+                                children: [
+                                  relCell(m['Name'] ?? '-', valueStyle, flex: 3),
+                                  relCell(m['Relationship'] ?? '-', valueStyle, flex: 2),
+                                ],
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                   ),
